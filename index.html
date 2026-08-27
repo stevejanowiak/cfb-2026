@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2026 Win Totals &middot; Model Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Archivo+Narrow:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--navy:#00274C;--navy-2:#083A6B;--maize:#FFCB05;--paper:#EEF1EE;--card:#FFF;
+--line:#D3DAD8;--muted:#5F7080;--won:#1B7F4D;--lost:#B3261E;--ink:#12222F}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:14px}
+header{background:var(--navy);color:#fff;padding:18px 24px 0;border-bottom:4px solid var(--maize)}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+h1{font-family:'Archivo Narrow',sans-serif;font-weight:700;font-size:23px;letter-spacing:.02em;margin:0;text-transform:uppercase}
+.wk{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--maize);letter-spacing:.08em}
+nav{display:flex;gap:2px;margin-top:16px}
+nav button{font-family:'Archivo Narrow',sans-serif;font-weight:600;font-size:13px;letter-spacing:.06em;
+ text-transform:uppercase;background:transparent;color:#9FB6CB;border:0;border-bottom:3px solid transparent;
+ padding:10px 16px;cursor:pointer}
+nav button:hover{color:#fff}
+nav button[aria-selected=true]{color:var(--navy);background:var(--paper);border-bottom-color:var(--paper);border-radius:5px 5px 0 0}
+nav button:focus-visible{outline:2px solid var(--maize);outline-offset:-2px}
+main{padding:22px 24px 60px;max-width:1440px}
+.panel[hidden]{display:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px 20px;margin-bottom:20px}
+h2{font-family:'Archivo Narrow',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:14px;
+ margin:0 0 3px;color:var(--navy)}
+.sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+table{border-collapse:collapse;width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+th{font-family:'Archivo Narrow',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:11px;
+ color:var(--muted);font-weight:700;padding:7px 8px;border-bottom:2px solid var(--line);white-space:nowrap;text-align:center}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 8px;border-bottom:1px solid #EDF0EF;text-align:center;white-space:nowrap}
+tbody tr:hover{background:#F7F9F8}
+.team{font-family:Archivo,sans-serif;font-weight:600}
+.lft{text-align:left}
+tr.won{background:#E7F4EC}tr.won:hover{background:#DDEEE4}
+tr.lost{background:#FBEAE8}tr.lost:hover{background:#F6DFDC}
+tr.bye td{color:#93A3AF}
+tfoot td{font-weight:700;border-top:2px solid var(--navy);border-bottom:0;padding-top:10px}
+.pos{color:var(--won)}.neg{color:var(--lost)}
+.gridwrap{overflow-x:auto}
+.gridwrap td.p{color:#0E2A1C;font-weight:500}
+.site{display:block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);font-weight:400;letter-spacing:.04em}
+.chartbox{position:relative;height:330px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.kpi{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:4px}
+.kpi div{display:flex;flex-direction:column}
+.kpi .n{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--navy);line-height:1.1}
+.kpi .l{font-family:'Archivo Narrow',sans-serif;text-transform:uppercase;letter-spacing:.07em;font-size:10.5px;color:var(--muted);margin-top:3px}
+.note{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5;font-family:Archivo,sans-serif}
+@media(max-width:900px){.two{grid-template-columns:1fr}main{padding:16px 12px 40px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body>
+<header><div class="brand"><h1>2026 Win Totals</h1><span class="wk" id="hdrwk"></span></div>
+<nav role="tablist">
+<button role="tab" id="t1" aria-controls="p1" aria-selected="true">Weekly Bets</button>
+<button role="tab" id="t2" aria-controls="p2" aria-selected="false">Michigan Grid</button>
+<button role="tab" id="t3" aria-controls="p3" aria-selected="false">SP+ Trends</button>
+</nav></header>
+<main>
+<section class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+ <div class="card"><div class="kpi">
+   <div><span class="n" id="k1"></span><span class="l">Current value</span></div>
+   <div><span class="n" id="k2"></span><span class="l">Staked</span></div>
+   <div><span class="n" id="k3"></span><span class="l">Max return</span></div>
+   <div><span class="n" id="k4"></span><span class="l">Bets live</span></div>
+   <div><span class="n" id="k5"></span><span class="l">Games of cushion</span></div>
+ </div></div>
+ <div class="card"><h2>This week</h2><p class="sub" id="wksub"></p>
+  <table id="bets"><thead><tr><th>ET</th><th class="team lft">Team</th><th class="team">Opponent</th><th>Win %</th>
+  <th class="team">Bet</th><th>Exp Wins</th><th>Gms +/&minus;</th><th>Remain</th><th>Magic #</th><th>Win</th>
+  <th>Current Value</th><th>+/&minus; LW</th></tr></thead><tbody></tbody><tfoot></tfoot></table>
+  <p class="note">Win % is the chance of the result the bet needs: the team winning on an over, losing on an under.
+  Magic # counts wins still needed on an over, losses still needed on an under. Rows turn green when a bet is
+  officially won and red when it is officially lost.</p></div>
+ <div class="card"><h2>Expected value by week</h2><p class="sub">2026 against the last three seasons. Sum of every bet's win probability times its payout.</p>
+  <div class="chartbox"><canvas id="evc"></canvas></div></div>
+</section>
+<section class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+ <div class="card"><h2>Michigan &mdash; win probability by opponent</h2>
+  <p class="sub">One row per week. Played games lock to 100% or 0%; the rest re-price off that week's SP+.</p>
+  <div class="gridwrap"><table id="grid"><thead></thead><tbody></tbody></table></div>
+  <p class="note">Cell shading runs red at 0% through white at 50% to green at 100%. H and A mark home and away.</p></div>
+</section>
+<section class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+ <div class="card"><h2>2026 tracked teams</h2><p class="sub">SP+ rating by week, all ten tracked teams.</p>
+  <div class="chartbox"><canvas id="c26"></canvas></div></div>
+ <div class="card"><h2>Michigan by season</h2><p class="sub">2026 against 2023, 2024 and 2025.</p>
+  <div class="chartbox"><canvas id="cmi"></canvas></div></div>
+</section>
+</main>
+<script>
+const DATA = {"michOpp": [{"opp": "WMU", "site": "H", "p": 0.9445, "wk": 1}, {"opp": "OU", "site": "H", "p": 0.5174, "wk": 2}, {"opp": "UTEP", "site": "H", "p": 0.9923, "wk": 3}, {"opp": "Iowa", "site": "H", "p": 0.6203, "wk": 4}, {"opp": "Minn", "site": "A", "p": 0.698, "wk": 5}, {"opp": "PSU", "site": "H", "p": 0.5817, "wk": 7}, {"opp": "IU", "site": "H", "p": 0.3469, "wk": 8}, {"opp": "Rut", "site": "A", "p": 0.7696, "wk": 9}, {"opp": "MSU", "site": "H", "p": 0.8602, "wk": 10}, {"opp": "Ore", "site": "A", "p": 0.1791, "wk": 11}, {"opp": "UCLA", "site": "H", "p": 0.8109, "wk": 12}, {"opp": "OSU", "site": "A", "p": 0.1277, "wk": 13}], "grid": [{"week": "Wk 1", "cells": [0.9445, 0.5174, 0.9923, 0.6203, 0.698, 0.5817, 0.3469, 0.7696, 0.8602, 0.1791, 0.8109, 0.1277], "exp": 7.4, "p9": 0.225, "p10": 0.063}], "sp26": {"Michigan": [17], "Ohio St.": [32.7], "Michigan St.": [2.2], "Penn St.": [16.2], "Oregon": [29.2], "USC": [17.7], "Iowa": [14.6], "Washington": [15.8], "Notre Dame": [26.5], "Texas": [22.8]}, "michHist": {"2023": [28.6, 28, 27.7, 28.2, 26.7, 25, 25.7, 25.1, 28.7, 29.2, 30.5, 30.8, 31.4, 31.1, 31.1], "2024": [25, 20.5, 16.9, 17.4, 15.8, 15.7, 12.6, 13.7, 11.4, 11.9, 9.5, 6.7, 6.9, 8.5, 9.2], "2025": [20.9, 16.8, 14.7, 17.4, 17.9, 20.2, 19.8, 16.8, 16.4, 16.5, 15.6, 15.7, 14.6, 15.2, 13.6], "2026": [17]}, "bets": [{"time": "7:00 PM", "team": "Florida St.", "opp": "NMSU", "need": 0.97, "bet": "over 6.5", "exp": 6.6, "gms": 0.08, "remain": 12, "magic": 7, "win": 0.521, "value": 132.29, "lw": null, "status": "live"}, {"time": null, "team": "Miami-OH", "opp": "Bye", "need": null, "bet": "over 7.5", "exp": 8.5, "gms": 0.97, "remain": 12, "magic": 8, "win": 0.769, "value": 157.74, "lw": null, "status": "live"}, {"time": null, "team": "WVU", "opp": "Bye", "need": null, "bet": "under 5.5", "exp": 4.9, "gms": 0.61, "remain": 12, "magic": 7, "win": 0.67, "value": 156.89, "lw": null, "status": "live"}, {"time": null, "team": "Pittsburgh", "opp": "Bye", "need": null, "bet": "under 7.5", "exp": 6.9, "gms": 0.62, "remain": 12, "magic": 5, "win": 0.653, "value": 146.87, "lw": null, "status": "live"}, {"time": null, "team": "Utah", "opp": "Bye", "need": null, "bet": "under 8.5", "exp": 7.9, "gms": 0.57, "remain": 12, "magic": 4, "win": 0.636, "value": 143.0, "lw": null, "status": "live"}, {"time": null, "team": "Alabama", "opp": "Bye", "need": null, "bet": "under 8.5", "exp": 7.8, "gms": 0.7, "remain": 12, "magic": 4, "win": 0.673, "value": 138.01, "lw": null, "status": "live"}, {"time": null, "team": "Wisconsin", "opp": "Bye", "need": null, "bet": "under 6.5", "exp": 5.6, "gms": 0.86, "remain": 12, "magic": 6, "win": 0.725, "value": 135.59, "lw": null, "status": "live"}, {"time": null, "team": "Arizona St.", "opp": "Bye", "need": null, "bet": "under 6.5", "exp": 5.8, "gms": 0.71, "remain": 12, "magic": 6, "win": 0.683, "value": 133.34, "lw": null, "status": "live"}, {"time": null, "team": "Ole Miss", "opp": "Bye", "need": null, "bet": "under 7.5", "exp": 7.2, "gms": 0.26, "remain": 12, "magic": 5, "win": 0.566, "value": 130.25, "lw": null, "status": "live"}, {"time": null, "team": "MTSU", "opp": "Bye", "need": null, "bet": "under 3.5", "exp": 2.5, "gms": 1.01, "remain": 12, "magic": 9, "win": 0.784, "value": 176.35, "lw": null, "status": "live"}], "ev": {"2023": [1465, 1469, 1310, 1275, 1207, 1138, 1160, 1103, 1047, 933, 891, 981, 1006, 930, 900, 900], "2024": [1454, 1413, 1134, 973, 745, 794, 849, 784, 726, 738, 801, 797, 869, 780, 713, 765], "2025": [1390, 1390, 1351, 1474, 1389, 1457, 1554, 1560, 1630, 1670, 1709, 1663, 1643, 1728, 1723, 1683], "2026": [1450]}, "week": "Week 0", "date": "August 29, 2026", "spWeeks": ["Pre", "Wk1", "Wk2", "Wk3", "Wk4", "Wk5", "Wk6", "Wk7", "Wk8", "Wk9", "Wk10", "Wk11", "Wk12", "Wk13", "Wk14"], "evWeeks": ["Preseason", "Week 0", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6", "Week 7", "Week 8", "Week 9", "Week 10", "Week 11", "Week 12", "Week 13", "Week 14"]};
+const $=s=>document.querySelector(s);
+const pct=v=>v==null?'\u2014':(v*100).toFixed(0)+'%';
+const usd=v=>'$'+v.toLocaleString(undefined,{maximumFractionDigits:0});
+$('#hdrwk').textContent=DATA.week.toUpperCase()+' \u00B7 '+DATA.date;
+$('#wksub').textContent=DATA.week+' \u2014 '+DATA.date+'. Sorted by kickoff; teams without a game show as Bye.';
+/* ---- bets table ---- */
+const tb=$('#bets tbody');
+const rows=[...DATA.bets].sort((a,b)=>{
+ const A=a.time?0:1,B=b.time?0:1; if(A!==B)return A-B;
+ return (a.time||'').localeCompare(b.time||'');});
+let tv=0,live=0,mx=0;
+rows.forEach(b=>{
+ tv+=b.value; if(b.status==='live')live++;
+ const tr=document.createElement('tr');
+ if(b.status!=='live')tr.className=b.status; else if(b.opp==='Bye')tr.className='bye';
+ const g=b.gms>=0?'pos':'neg';
+ tr.innerHTML=`<td>${b.time||'\u2014'}</td><td class="team lft">${b.team}</td><td class="team">${b.opp}</td>
+ <td>${pct(b.need)}</td><td class="team">${b.bet}</td><td>${b.exp.toFixed(1)}</td>
+ <td class="${g}">${b.gms>0?'+':''}${b.gms.toFixed(2)}</td><td>${b.remain}</td>
+ <td>${b.status==='live'?b.magic:'\u2014'}</td><td>${pct(b.win)}</td><td>${usd(b.value)}</td>
+ <td>${b.lw==null?'\u2014':(b.lw>0?'+':'')+usd(b.lw)}</td>`;
+ tb.appendChild(tr);});
+const tg=rows.reduce((s,b)=>s+b.gms,0);
+$('#bets tfoot').innerHTML=`<tr><td colspan="6" class="lft">Total</td>
+ <td class="${tg>=0?'pos':'neg'}">${tg>0?'+':''}${tg.toFixed(2)}</td><td colspan="4"></td><td>${usd(tv)}</td><td></td></tr>`;
+$('#k1').textContent=usd(tv);$('#k2').textContent='$1,000';
+$('#k3').textContent='$2,185';$('#k4').textContent=live+'/10';
+const cush=rows.reduce((s,b)=>s+b.gms,0);
+$('#k5').textContent=(cush>0?'+':'')+cush.toFixed(1);
+$('#k5').style.color=cush>=0?'var(--won)':'var(--lost)';
+/* ---- michigan grid ---- */
+const gh=$('#grid thead'),gb=$('#grid tbody');
+gh.innerHTML='<tr><th>Week</th>'+DATA.michOpp.map(o=>`<th>${o.opp}<span class="site">${o.site}</span></th>`).join('')
+ +'<th>Exp Wins</th><th>% 9+</th><th>% 10+</th></tr>';
+const shade=p=>{const h=p<.5?0:145,t=Math.abs(p-.5)*2;return `hsl(${h} 55% ${100-t*38}%)`;};
+DATA.grid.forEach(r=>{
+ gb.innerHTML+=`<tr><td class="team lft">${r.week}</td>`+
+  r.cells.map(p=>`<td class="p" style="background:${shade(p)}">${pct(p)}</td>`).join('')+
+  `<td>${r.exp.toFixed(1)}</td><td>${pct(r.p9)}</td><td>${pct(r.p10)}</td></tr>`;});
+/* ---- charts ---- */
+const SCHOOL={
+ 'Michigan':      {c:'#00274C',d:[]},      /* navy   */
+ 'Ohio St.':      {c:'#BB0000',d:[]},      /* scarlet*/
+ 'Michigan St.':  {c:'#18453B',d:[]},      /* green  */
+ 'Penn St.':      {c:'#041E42',d:[6,3]},   /* navy - dashed vs Michigan */
+ 'Oregon':        {c:'#154733',d:[6,3]},   /* green - dashed vs Mich St */
+ 'USC':           {c:'#990000',d:[6,3]},   /* cardinal - dashed vs Ohio St */
+ 'Iowa':          {c:'#111111',d:[]},      /* black (gold reads too light) */
+ 'Washington':    {c:'#4B2E83',d:[]},      /* purple */
+ 'Notre Dame':    {c:'#C99700',d:[]},      /* ND gold */
+ 'Texas':         {c:'#BF5700',d:[]}};     /* burnt orange */
+const MICHYR={'2023':{c:'#E0AE00',d:[8,4]},'2024':{c:'#8AA9C4',d:[3,3]},
+              '2025':{c:'#3C6E9F',d:[5,3]},'2026':{c:'#00274C',d:[]}};
+const PAL=['#00274C','#B3261E','#7A7F87','#2E8B57','#083A6B','#C77800','#4CA3A8','#8E5BA6','#1B7F4D','#D0A215'];
+Chart.defaults.font.family="'IBM Plex Mono',monospace";Chart.defaults.font.size=11;
+Chart.defaults.color='#5F7080';
+const mk=(el,labels,sets,ytitle,money)=>new Chart($(el),{type:'line',data:{labels,datasets:sets},
+ options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+ plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:2,padding:11,usePointStyle:false}},
+  tooltip:{callbacks:{label:c=>c.dataset.label+': '+(money
+    ?'$'+Math.round(c.parsed.y).toLocaleString():c.parsed.y)}}},
+ elements:{point:{radius:2,hoverRadius:5},line:{tension:.25,borderWidth:2}},
+ scales:{y:{title:{display:!!ytitle,text:ytitle},grid:{color:'#E6EAE8'},
+   ticks:{callback:v=>money?'$'+Math.round(v).toLocaleString():v}},x:{grid:{display:false}}}}});
+mk('#evc',DATA.evWeeks,Object.entries(DATA.ev).map(([k,v],i)=>({label:k,data:v,
+ borderColor:k==='2026'?'#00274C':PAL[i+1],backgroundColor:'transparent',
+ borderWidth:k==='2026'?3:1.6,borderDash:k==='2026'?[]:[3,3]})),'Value ($)',true);
+mk('#c26',DATA.spWeeks,Object.entries(DATA.sp26).map(([k,v])=>{
+ const s=SCHOOL[k]||{c:'#5F7080',d:[]};
+ return {label:k,data:v,borderColor:s.c,backgroundColor:'transparent',
+  borderDash:s.d,borderWidth:k==='Michigan'?3:1.9};}),'SP+');
+mk('#cmi',DATA.spWeeks,Object.entries(DATA.michHist).map(([k,v])=>{
+ const s=MICHYR[k];
+ return {label:'Michigan '+k,data:v,borderColor:s.c,backgroundColor:'transparent',
+  borderDash:s.d,borderWidth:k==='2026'?3:1.8};}),'SP+');
+/* ---- tabs ---- */
+const tabs=[...document.querySelectorAll('[role=tab]')];
+tabs.forEach(t=>t.addEventListener('click',()=>{
+ tabs.forEach(o=>{o.setAttribute('aria-selected',o===t);
+  document.getElementById(o.getAttribute('aria-controls')).hidden=(o!==t);});
+ window.dispatchEvent(new Event('resize'));}));
+</script></body></html>
