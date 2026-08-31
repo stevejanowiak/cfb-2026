@@ -93,7 +93,7 @@ details.wkbox .body{padding:0 16px 16px}
  </div></div>
  <div id="weeks"></div>
  <div class="card" id="tpl" hidden>
-  <table id="bets"><thead><tr><th>ET</th><th class="team lft">Team</th><th class="team">Opponent</th><th>Win %</th>
+  <table id="bets"><thead><tr><th>ET</th><th class="team">Team</th><th class="team">Opponent</th><th>&quot;Win&quot; %</th>
   <th class="team">Bet</th><th>Exp Wins</th><th>Gms +/&minus;</th><th>Remain</th><th>Magic #</th><th>Win</th>
   <th>Current Value</th><th>+/&minus; LW</th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>
  <div class="card"><p class="note" style="margin:0">Win % is the chance of the result the bet needs: the team winning on an over, losing on an under.
@@ -120,6 +120,7 @@ const DATA = {"michOpp": [{"opp": "WMU", "site": "H", "p": 0.9445, "wk": 1}, {"o
 const $=s=>document.querySelector(s);
 const pct=v=>v==null?'\u2014':(v*100).toFixed(0)+'%';
 const usd=v=>'$'+v.toLocaleString(undefined,{maximumFractionDigits:0});
+const usdS=v=>{const n=Math.round(v);return n===0?'$0':(n>0?'+$':'-$')+Math.abs(n).toLocaleString();};
 const cur=DATA.weeks[DATA.weeks.length-1];
 $('#hdrwk').textContent=cur.label.toUpperCase()+' · '+cur.date;
 const HEAD=$('#bets thead').innerHTML;
@@ -133,11 +134,11 @@ function render(w,open){
    tv+=b.value; if(b.status==='live')live++;
    const cls=b.status!=='live'?b.status:(b.opp==='Bye'?'bye':'');
    const g=b.gms>=0?'pos':'neg';
-   return `<tr class="${cls}"><td>${b.time||'—'}</td><td class="team lft">${b.team}</td>
+   return `<tr class="${cls}"><td>${b.time||'—'}</td><td class="team">${b.team}</td>
     <td class="team">${b.opp}</td><td>${pct(b.need)}</td><td class="team">${b.bet}</td>
     <td>${b.exp.toFixed(1)}</td><td class="${g}">${b.gms>0?'+':''}${b.gms.toFixed(1)}</td>
     <td>${b.remain}</td><td>${b.status==='live'?b.magic:'—'}</td><td>${pct(b.win)}</td>
-    <td>${usd(b.value)}</td><td>${b.lw==null?'—':(b.lw>0?'+':'')+usd(b.lw)}</td></tr>`;}).join('');
+    <td>${usd(b.value)}</td><td>${b.lw==null?'—':usdS(b.lw)}</td></tr>`;}).join('');
  const cush=rows.reduce((s,b)=>s+b.gms,0);
  const foot=`<tr><td colspan="6" class="lft">Total</td>
    <td class="${cush>=0?'pos':'neg'}">${cush>0?'+':''}${cush.toFixed(1)}</td>
