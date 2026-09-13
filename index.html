@@ -170,9 +170,10 @@ function render(w,open){
     <td>${b.remain}</td><td>${b.status==='live'?b.magic:'—'}</td><td>${pct(b.win)}</td>
     <td>${usd(b.value)}</td><td>${b.lw==null?'—':usdS(b.lw)}</td></tr>`;}).join('');
  const cush=rows.reduce((s,b)=>s+b.gms,0);
- const foot=`<tr><td colspan="6" class="lft">Total</td>
-   <td class="${cush>=0?'pos':'neg'}">${cush>0?'+':''}${cush.toFixed(1)}</td>
-   <td colspan="4"></td><td>${usd(tv)}</td><td></td></tr>`;
+ const tlw=rows.reduce((s,b)=>s+(b.lw==null?0:b.lw),0);
+ const anylw=rows.some(b=>b.lw!=null);
+ const foot=`<tr><td colspan="10" class="lft">Total</td><td>${usd(tv)}</td>
+   <td class="${anylw?(tlw>=0?'pos':'neg'):''}">${anylw?usdS(tlw):'—'}</td></tr>`;
  const d=document.createElement('details');
  d.className='wkbox'; d.open=open;
  d.innerHTML=`<summary>${w.label}<span class="meta">${w.date} · ${usd(tv)} · `+
