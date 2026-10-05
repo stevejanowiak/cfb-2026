@@ -1,0 +1,63 @@
+name: Update scores
+
+on:
+  schedule:
+    # every 30 min during US game windows (times are UTC)
+    - cron: '*/30 16-23 * * 4,5,6,0'
+    - cron: '*/30 0-7  * * 5,6,0,1'
+    # once daily as a safety net
+    - cron: '15 12 * * *'
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch ESPN scoreboard
+        run: |
+          S=$(date -u -d '-4 days' +%Y%m%d)
+          E=$(date -u -d '+4 days' +%Y%m%d)
+          URL="https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${S}-${E}&groups=80&limit=400"
+          echo "fetching $URL"
+          curl -sS --fail --retry 3 --retry-delay 5 "$URL" -o scores.raw.json
+
+      - name: Trim to what the page needs
+        run: |
+          python3 - <<'PY'
+          import json, datetime
+          d = json.load(open('scores.raw.json'))
+          out = []
+          for ev in d.get('events', []):
+              comp = (ev.get('competitions') or [{}])[0]
+              st = (ev.get('status') or {}).get('type') or {}
+              cs = []
+              for c in comp.get('competitors') or []:
+                  t = c.get('team') or {}
+                  cs.append({'homeAway': c.get('homeAway'), 'score': c.get('score'),
+                             'winner': c.get('winner'),
+                             'team': {k: t.get(k) for k in
+                                      ('location','displayName','shortDisplayName','name','abbreviation')}})
+              out.append({'date': ev.get('date'),
+                          'status': {'type': {'state': st.get('state'),
+                                              'completed': st.get('completed'),
+                                              'shortDetail': st.get('shortDetail')}},
+                          'competitions': [{'competitors': cs}]})
+          json.dump({'events': out,
+                     'updated': datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z'},
+                    open('scores.json','w'), separators=(',',':'))
+          print(len(out), 'events written')
+          PY
+          rm -f scores.raw.json
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "scores-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add scores.json
+          git diff --staged --quiet || git commit -m "scores $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
