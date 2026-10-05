@@ -2,12 +2,10 @@ name: Update scores
 
 on:
   schedule:
-    # every 30 min during US game windows (times are UTC)
-    - cron: '*/30 16-23 * * 4,5,6,0'
-    - cron: '*/30 0-7  * * 5,6,0,1'
-    # once daily as a safety net
-    - cron: '15 12 * * *'
-  workflow_dispatch:        # lets you run it by hand from the Actions tab
+    - cron: '*/30 16-23 * * 4,5,6,0'   # UTC - US afternoon/evening game windows
+    - cron: '*/30 0-7  * * 5,6,0,1'    # UTC - US late games
+    - cron: '15 12 * * *'              # daily safety net
+  workflow_dispatch:                   # lets you run it by hand
 
 permissions:
   contents: write
@@ -18,41 +16,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch ESPN scoreboard
+      - name: Fetch ESPN scoreboard, one day at a time
         run: |
-          S=$(date -u -d '-4 days' +%Y%m%d)
-          E=$(date -u -d '+4 days' +%Y%m%d)
-          URL="https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${S}-${E}&groups=80&limit=400"
-          echo "fetching $URL"
-          curl -sS --fail --retry 3 --retry-delay 5 "$URL" -o scores.raw.json
+          # ESPN's scoreboard endpoint rejects the dates=A-B range form (HTTP 4xx),
+          # so request each day separately and merge afterwards.
+          rm -f day_*.json
+          ok=0
+          for i in $(seq -4 4); do
+            D=$(date -u -d "$i days" +%Y%m%d)
+            URL="https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${D}&groups=80&limit=400"
+            if curl -sS -f -A "cfb-2026-dashboard" --retry 2 --retry-delay 3 "$URL" -o "day_${D}.json"; then
+              echo "  ok   $D"
+              ok=$((ok+1))
+            else
+              echo "  FAIL $D"
+              rm -f "day_${D}.json"
+            fi
+          done
+          echo "$ok day(s) fetched"
+          if [ "$ok" -eq 0 ]; then echo "no days fetched"; exit 1; fi
 
-      - name: Trim to what the page needs
+      - name: Merge and trim to what the page needs
         run: |
           python3 - <<'PY'
-          import json, datetime
-          d = json.load(open('scores.raw.json'))
-          out = []
-          for ev in d.get('events', []):
-              comp = (ev.get('competitions') or [{}])[0]
-              st = (ev.get('status') or {}).get('type') or {}
-              cs = []
-              for c in comp.get('competitors') or []:
-                  t = c.get('team') or {}
-                  cs.append({'homeAway': c.get('homeAway'), 'score': c.get('score'),
-                             'winner': c.get('winner'),
-                             'team': {k: t.get(k) for k in
-                                      ('location','displayName','shortDisplayName','name','abbreviation')}})
-              out.append({'date': ev.get('date'),
-                          'status': {'type': {'state': st.get('state'),
-                                              'completed': st.get('completed'),
-                                              'shortDetail': st.get('shortDetail')}},
-                          'competitions': [{'competitors': cs}]})
+          import json, glob, datetime
+          out, seen = [], set()
+          for f in sorted(glob.glob('day_*.json')):
+              try:
+                  d = json.load(open(f))
+              except Exception as e:
+                  print('skip', f, e); continue
+              for ev in d.get('events', []):
+                  if ev.get('id') in seen: continue
+                  seen.add(ev.get('id'))
+                  comp = (ev.get('competitions') or [{}])[0]
+                  st = (ev.get('status') or {}).get('type') or {}
+                  cs = []
+                  for c in comp.get('competitors') or []:
+                      t = c.get('team') or {}
+                      cs.append({'homeAway': c.get('homeAway'), 'score': c.get('score'),
+                                 'winner': c.get('winner'),
+                                 'team': {k: t.get(k) for k in
+                                          ('location','displayName','shortDisplayName','name','abbreviation')}})
+                  out.append({'date': ev.get('date'),
+                              'status': {'type': {'state': st.get('state'),
+                                                  'completed': st.get('completed'),
+                                                  'shortDetail': st.get('shortDetail')}},
+                              'competitions': [{'competitors': cs}]})
           json.dump({'events': out,
-                     'updated': datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z'},
+                     'updated': datetime.datetime.now(datetime.timezone.utc)
+                                 .isoformat(timespec='seconds').replace('+00:00','Z')},
                     open('scores.json','w'), separators=(',',':'))
           print(len(out), 'events written')
           PY
-          rm -f scores.raw.json
+          rm -f day_*.json
 
       - name: Commit if changed
         run: |
