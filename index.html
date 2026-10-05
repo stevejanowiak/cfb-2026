@@ -229,20 +229,9 @@ async function liveScoresInner(say){
      list.push(''+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'));}
  } else list=[wk.espnDates];
  let js={events:[]}, via='', errs=[];
- // 1) same-origin file written by the GitHub Action - cannot be blocked by CORS or extensions
- try{
-   const r=await fetch('./scores.json?t='+Date.now());
-   if(r.ok){
-     const j=await r.json();
-     if(j&&j.events&&j.events.length){
-       js.events=j.events;
-       via='scores.json'+(j.updated?' @'+j.updated.replace('T',' ').replace('Z','')+'Z':'');
-     }
-   }
- }catch(e){errs.push('scores.json: '+(e&&e.message?e.message:e));}
- // 2) fall back to calling ESPN straight from the browser (blocked in some browsers)
  const base='https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard';
- if(!js.events.length) for(const day of list){
+ // 1) try ESPN live, one call per day - freshest, but blocked in some browsers
+ for(const day of list){
    try{
      const r=await fetch(base+'?dates='+day+'&groups=80&limit=400');
      if(!r.ok) throw new Error('HTTP '+r.status);
@@ -250,13 +239,31 @@ async function liveScoresInner(say){
      js.events=js.events.concat(j.events||[]);
    }catch(e){errs.push(day+': '+(e&&e.message?e.message:e));}
  }
- if(!via) via=(list.length-errs.filter(e=>e[0]!=='s').length)+'/'+list.length+' days direct';
+ if(js.events.length) via='ESPN live';
+ // 2) otherwise use the same-origin file the Action writes
+ if(!js.events.length){
+   try{
+     const r=await fetch('./scores.json?t='+Date.now());
+     if(r.ok){
+       const j=await r.json();
+       if(j&&j.events&&j.events.length){
+         js.events=j.events;
+         via='scores.json'+(j.updated?' @'+j.updated.replace('T',' ').replace('Z','')+'Z':'');
+       }
+     }
+   }catch(e){errs.push('scores.json: '+(e&&e.message?e.message:e));}
+ }
  if(!js.events.length){say('no events - '+(errs.join(' | ')||'empty'));return;}
  const events=(js&&js.events)||[];
  
  let matched=0;
  const betOf={}; wk.bets.forEach(b=>betOf[b.team]=b);
- events.forEach(ev=>{
+ const inWeek=new Set(list);                       // the YYYYMMDD days this week covers
+ const kept=events.filter(ev=>{
+   if(!ev.date) return false;
+   return inWeek.has(ev.date.slice(0,10).replace(/-/g,''));
+ });
+ kept.forEach(ev=>{
   const comp=(ev.competitions||[])[0]; if(!comp)return;
   const cs=comp.competitors||[]; if(cs.length<2)return;
   cs.forEach(c=>{
@@ -287,7 +294,7 @@ async function liveScoresInner(say){
    const wantWin = betOf[key].bet.indexOf('over')===0;
    row.classList.add(won===wantWin?'good':'bad');
   });});
- say('via '+via+' - '+events.length+' events, '+matched+' matched our teams'+(matched?'':' - CHECK NAME MATCHING'));
+ say('via '+via+' - '+kept.length+'/'+events.length+' events in window, '+matched+' matched'+(matched?'':' - CHECK NAME MATCHING'));
  setTimeout(()=>{const d=$('#diag');if(d&&matched)d.style.display='none';},6000);
  // re-order rows by the kickoff times we just learned
  document.querySelectorAll('#weeks details.wkbox[open] tbody').forEach(tb=>{
