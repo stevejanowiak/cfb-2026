@@ -22,7 +22,7 @@ jobs:
           # so request each day separately and merge afterwards.
           rm -f day_*.json
           ok=0
-          for i in $(seq -4 4); do
+          for i in $(seq -4 10); do
             D=$(date -u -d "$i days" +%Y%m%d)
             URL="https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${D}&groups=80&limit=400"
             if curl -sS -f -A "cfb-2026-dashboard" --retry 2 --retry-delay 3 "$URL" -o "day_${D}.json"; then
