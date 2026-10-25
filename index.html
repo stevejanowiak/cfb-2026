@@ -40,6 +40,7 @@ tbody td{color:var(--ink)}
 tbody tr.bye td{color:#93A3AF}
 tbody td.pos,tbody tr.bye td.pos{color:var(--won)}
 tbody td.neg,tbody tr.bye td.neg{color:var(--lost)}
+tbody tr.lost td,tbody tr.lost td.pos,tbody tr.lost td.neg,tbody tr.lost td.team{color:var(--lost)}
 tfoot td{font-weight:700;border-top:2px solid var(--navy);border-bottom:0;padding-top:10px}
 .pos{color:var(--won)}.neg{color:var(--lost)}
 .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -154,7 +155,9 @@ const cur=DATA.weeks[DATA.weeks.length-1];
 $('#hdrwk').textContent=cur.label.toUpperCase()+' · '+cur.date;
 const HEAD=$('#bets thead').innerHTML;
 function render(w,open){
- const rows=[...w.bets].sort((a,b)=>{const A=a.time?0:1,B=b.time?0:1;
+ const rows=[...w.bets].sort((a,b)=>{const Z=a.status==='lost'?1:0,Y=b.status==='lost'?1:0;
+   if(Z!==Y)return Z-Y;
+   const A=a.time?0:1,B=b.time?0:1;
    if(A!==B)return A-B;
    if(a.ord!=null&&b.ord!=null)return a.ord-b.ord;
    return (a.time||'').localeCompare(b.time||'');});
