@@ -34,13 +34,12 @@ td{padding:7px 8px;border-bottom:1px solid #EDF0EF;text-align:center;white-space
 tbody tr:hover{background:#F7F9F8}
 .team{font-family:Archivo,sans-serif;font-weight:600}
 .lft{text-align:left}
-tr.won{background:#E7F4EC}tr.won:hover{background:#DDEEE4}
-tr.lost{background:#FBEAE8}tr.lost:hover{background:#F6DFDC}
 tbody td{color:var(--ink)}
 tbody tr.bye td{color:#93A3AF}
 tbody td.pos,tbody tr.bye td.pos{color:var(--won)}
 tbody td.neg,tbody tr.bye td.neg{color:var(--lost)}
 tbody tr.lost td,tbody tr.lost td.pos,tbody tr.lost td.neg,tbody tr.lost td.team{color:var(--lost)}
+tbody tr.won td,tbody tr.won td.pos,tbody tr.won td.neg,tbody tr.won td.team{color:var(--won)}
 tfoot td{font-weight:700;border-top:2px solid var(--navy);border-bottom:0;padding-top:10px}
 .pos{color:var(--won)}.neg{color:var(--lost)}
 .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -155,7 +154,7 @@ const cur=DATA.weeks[DATA.weeks.length-1];
 $('#hdrwk').textContent=cur.label.toUpperCase()+' · '+cur.date;
 const HEAD=$('#bets thead').innerHTML;
 function render(w,open){
- const rows=[...w.bets].sort((a,b)=>{const Z=a.status==='lost'?1:0,Y=b.status==='lost'?1:0;
+ const rows=[...w.bets].sort((a,b)=>{const Z=a.status!=='live'?1:0,Y=b.status!=='live'?1:0;
    if(Z!==Y)return Z-Y;
    const A=a.time?0:1,B=b.time?0:1;
    if(A!==B)return A-B;
