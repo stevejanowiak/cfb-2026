@@ -302,7 +302,9 @@ async function liveScoresInner(say){
  document.querySelectorAll('#weeks details.wkbox[open] tbody').forEach(tb=>{
    const rs=[...tb.rows];
    if(!rs.some(r=>r.dataset.kick))return;
+   const done=r=>(r.classList.contains('won')||r.classList.contains('lost'))?1:0;
    rs.sort((a,b)=>{
+     const Z=done(a),Y=done(b); if(Z!==Y)return Z-Y;
      const A=a.dataset.kick?+a.dataset.kick:Infinity, B=b.dataset.kick?+b.dataset.kick:Infinity;
      return A-B;});
    rs.forEach(r=>tb.appendChild(r));});
